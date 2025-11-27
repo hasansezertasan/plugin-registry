@@ -26,18 +26,6 @@ uv run sync
 uv run get-readme
 ```
 
-- **Consolidate Plugins**: Consolidate all individual plugin YAML files into a single `output/plugins.yml`
-
-```sh
-uv run consolidate-plugins
-```
-
-- **Consolidate READMEs**: Consolidate all individual README markdown files into a single `output/readmes.json`
-
-```sh
-uv run consolidate-readmes
-```
-
 ### Contribution
 
 - If you feel a plugin is missing, please create a new [issue](https://github.com/litestar-org/plugin-registry/issues/new)

@@ -16,8 +16,6 @@ dependencies = [
 [project.scripts]
 get-readme = "src.main:get_readme_cli"
 sync = "src.main:sync_all_cli"
-consolidate-plugins = "src.main:consolidate_plugins_cli"
-consolidate-readmes = "src.main:consolidate_readmes_cli"
 
 [build-system]
 build-backend = "hatchling.build"
