@@ -32,6 +32,12 @@ jobs:
       - name: Get README files
         run: uv run get-readme
 
+      - name: Consolidate plugins
+        run: uv run consolidate-plugins
+
+      - name: Consolidate READMEs
+        run: uv run consolidate-readmes
+
       - name: Check for changes
         id: git-check
         run: |
@@ -89,7 +95,7 @@ jobs:
         run: |
           zip -r plugins.zip plugins/
           zip -r readmes.zip readmes/
-          zip -r plugins-and-readmes.zip plugins/ readmes/
+          zip -r plugins-and-readmes.zip plugins/ readmes/ output/
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -106,5 +112,7 @@ jobs:
             plugins.zip
             readmes.zip
             plugins-and-readmes.zip
+            output/plugins.yml
+            output/readmes.json
           draft: false
           prerelease: false

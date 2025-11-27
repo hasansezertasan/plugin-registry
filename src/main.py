@@ -13,6 +13,7 @@ from src.constants import (
     PLUGINS_DIR,
     ROOT_DIR,
     READMES_DIR,
+    OUTPUT_DIR,
     DEFAULT_PLUGIN_ICON,
 )
 
@@ -221,3 +222,68 @@ def sync_all_cli() -> None:
     logger.info("Starting sync all")
     result = asyncio.run(sync_all())
     logger.info("Sync all completed", count=result["count"], success=result["success"])
+
+
+async def consolidate_plugins() -> None:
+    """Consolidate all individual plugin YAML files into a single plugins.yml file."""
+    import json
+
+    await logger.ainfo("Consolidating plugins into single file")
+
+    plugins: list[PluginInfo] = await read_plugins()
+
+    # Convert all plugins to dict format
+    plugins_data = {}
+    for plugin in plugins:
+        plugin_dict = msgspec.to_builtins(plugin)
+        plugins_data[plugin.key] = plugin_dict
+
+    # Ensure output directory exists
+    OUTPUT_DIR.mkdir(exist_ok=True)
+
+    # Write consolidated plugins.yml
+    output_file: Path = OUTPUT_DIR.joinpath("plugins.yml")
+    with open(output_file, "w", encoding="utf-8") as f:
+        yaml.dump(plugins_data, f, default_flow_style=False, sort_keys=False)
+
+    await logger.ainfo(f"Consolidated {len(plugins)} plugins into output/plugins.yml")
+
+
+async def consolidate_readmes() -> None:
+    """Consolidate all individual README markdown files into a single readmes.json file."""
+    import json
+
+    await logger.ainfo("Consolidating READMEs into single JSON file")
+
+    readmes_data = {}
+    readme_files = list(READMES_DIR.glob("*.md"))
+
+    for readme_file in readme_files:
+        if readme_file.name == ".gitkeep":
+            continue
+
+        plugin_key = readme_file.stem
+
+        with open(readme_file, "r", encoding="utf-8") as f:
+            content = f.read()
+            readmes_data[plugin_key] = content
+
+    # Ensure output directory exists
+    OUTPUT_DIR.mkdir(exist_ok=True)
+
+    # Write consolidated readmes.json
+    output_file: Path = OUTPUT_DIR.joinpath("readmes.json")
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(readmes_data, f, indent=2, ensure_ascii=False)
+
+    await logger.ainfo(f"Consolidated {len(readmes_data)} READMEs into output/readmes.json")
+
+
+def consolidate_plugins_cli() -> None:
+    """CLI wrapper for the consolidate-plugins command."""
+    asyncio.run(consolidate_plugins())
+
+
+def consolidate_readmes_cli() -> None:
+    """CLI wrapper for the consolidate-readmes command."""
+    asyncio.run(consolidate_readmes())
