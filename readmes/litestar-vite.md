@@ -5,65 +5,136 @@ Litestar Vite connects the Litestar backend to a Vite toolchain. It supports SPA
 ## Features
 
 - One-port dev: proxies Vite HTTP + WS/HMR through Litestar by default; switch to two-port with `VITE_PROXY_MODE=direct`.
+- SSR framework support: use `proxy_mode="ssr"` for Astro, Nuxt, SvelteKit - proxies everything except your API routes.
 - Production assets: reads Vite manifest from `public/manifest.json` (configurable) and serves under `asset_url`.
 - Type-safe frontends: optional OpenAPI/routes export + `@hey-api/openapi-ts` via the Vite plugin.
 - Inertia support: v2 protocol with session middleware and optional SPA mode.
 
-## Quick start (React TanStack SPA)
+## Quick Start (SPA)
 
 ```bash
 pip install litestar-vite
-litestar assets init --template react-tanstack
-litestar assets install  # installs frontend deps via configured executor
 ```
 
 ```python
+import os
+from pathlib import Path
 from litestar import Litestar
-from litestar_vite import VitePlugin, ViteConfig
+from litestar_vite import VitePlugin, ViteConfig, PathConfig
 
-app = Litestar(plugins=[VitePlugin(config=ViteConfig(dev_mode=True))])  # SPA mode by default
+DEV_MODE = os.getenv("VITE_DEV_MODE", "true").lower() in ("true", "1", "yes")
+
+app = Litestar(
+    plugins=[VitePlugin(config=ViteConfig(
+        dev_mode=DEV_MODE,
+        paths=PathConfig(root=Path(__file__).parent),
+    ))]
+)
 ```
 
 ```bash
-litestar run --reload  # starts Litestar; Vite dev is proxied automatically
+litestar run --reload  # Vite dev server is proxied automatically
 ```
 
-Other templates: `react`, `vue`, `svelte`, `htmx`, `react-inertia`, `vue-inertia`, `svelte-inertia`, `angular`, `angular-cli`, `astro`, `nuxt`, `sveltekit` (see `litestar assets init --help`).
+Scaffold a frontend: `litestar assets init --template vue` (or `react`, `svelte`, `htmx`, `react-inertia`, `vue-inertia`, `angular`, `astro`, `nuxt`, `sveltekit`).
 
 ## Template / HTMX
 
 ```python
+from pathlib import Path
 from litestar import Litestar
 from litestar.contrib.jinja import JinjaTemplateEngine
-from litestar.template.config import TemplateConfig
-from litestar_vite import VitePlugin, ViteConfig
+from litestar.template import TemplateConfig
+from litestar_vite import VitePlugin, ViteConfig, PathConfig
+
+here = Path(__file__).parent
 
 app = Litestar(
-    template_config=TemplateConfig(engine=JinjaTemplateEngine(directory="templates")),
-    plugins=[VitePlugin(config=ViteConfig(mode="template", dev_mode=True))],
+    template_config=TemplateConfig(directory=here / "templates", engine=JinjaTemplateEngine),
+    plugins=[VitePlugin(config=ViteConfig(
+        dev_mode=True,
+        paths=PathConfig(root=here),
+    ))],
 )
 ```
 
 ## Inertia (v2)
 
-Requires session middleware.
+Requires session middleware (32-char secret).
 
 ```python
+import os
+from pathlib import Path
 from litestar import Litestar
 from litestar.middleware.session.client_side import CookieBackendConfig
-from litestar_vite import VitePlugin, ViteConfig
-from litestar_vite.inertia import InertiaPlugin
-from litestar_vite.inertia.config import InertiaConfig
+from litestar_vite import VitePlugin, ViteConfig, PathConfig
+from litestar_vite.inertia import InertiaConfig
 
-session_backend = CookieBackendConfig(secret="dev-secret")
+here = Path(__file__).parent
+SECRET_KEY = os.environ.get("SECRET_KEY", "development-only-secret-32-chars")
+session = CookieBackendConfig(secret=SECRET_KEY.encode("utf-8"))
 
 app = Litestar(
-    middleware=[session_backend.middleware],
+    middleware=[session.middleware],
+    plugins=[VitePlugin(config=ViteConfig(
+        dev_mode=True,
+        paths=PathConfig(root=here),
+        inertia=InertiaConfig(root_template="index.html"),
+    ))],
+)
+```
+
+## Meta-frameworks (Astro, Nuxt, SvelteKit)
+
+Use `proxy_mode="ssr"` to proxy non-API routes to the framework's dev server:
+
+```python
+import os
+from pathlib import Path
+from litestar import Litestar
+from litestar_vite import VitePlugin, ViteConfig, PathConfig, RuntimeConfig
+
+here = Path(__file__).parent
+DEV_MODE = os.getenv("VITE_DEV_MODE", "true").lower() in ("true", "1", "yes")
+
+app = Litestar(
     plugins=[
-        VitePlugin(config=ViteConfig(mode="template", inertia=True, dev_mode=True)),
-        InertiaPlugin(InertiaConfig()),
+        VitePlugin(config=ViteConfig(
+            dev_mode=DEV_MODE,
+            paths=PathConfig(root=here),
+            runtime=RuntimeConfig(proxy_mode="ssr"),
+        ))
     ],
 )
+```
+
+### Proxy Modes
+
+| Mode | Alias | Use Case |
+|------|-------|----------|
+| `vite` | - | SPAs - proxies Vite assets only (default) |
+| `direct` | - | Two-port dev - expose Vite port directly |
+| `proxy` | `ssr` | Meta-frameworks - proxies everything except API routes |
+
+### Production Deployment
+
+**Astro (static):** Astro generates static HTML by default. Build and serve with Litestar:
+
+```bash
+litestar --app-dir examples/astro assets install
+litestar --app-dir examples/astro assets build
+VITE_DEV_MODE=false litestar --app-dir examples/astro run
+```
+
+**Nuxt/SvelteKit (SSR):** These run their own Node servers. Deploy as two services:
+
+```bash
+# Terminal 1: SSR server
+litestar --app-dir examples/nuxt assets build
+litestar --app-dir examples/nuxt assets serve
+
+# Terminal 2: Litestar API
+VITE_DEV_MODE=false litestar --app-dir examples/nuxt run --port 8001
 ```
 
 ## Type generation
@@ -94,5 +165,5 @@ litestar assets generate-types  # one-off or CI
 ## Links
 
 - Docs: <https://litestar-org.github.io/litestar-vite/>
-- Examples: `examples/` (basic, inertia, spa-react)
+- Examples: `examples/` (react, vue, svelte, react-inertia, vue-inertia, astro, nuxt, sveltekit, htmx)
 - Issues: <https://github.com/litestar-org/litestar-vite/issues/>
