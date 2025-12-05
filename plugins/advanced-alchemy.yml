@@ -15,8 +15,8 @@ maintainers:
 compatibility:
   litestar: '>=2.0.0'
 icon: advanced-alchemy.png
-stars: 694
-monthly_downloads: 119592
+stars: 695
+monthly_downloads: 119500
 latest_version: 1.8.0
 updated_at: '2025-10-28T21:01:30'
 created_at: '2023-09-17T17:39:42'
