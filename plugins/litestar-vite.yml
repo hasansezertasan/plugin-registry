@@ -16,16 +16,15 @@ compatibility:
   litestar: '>=2.0.0'
 icon: litestar-vite.svg
 stars: 29
-monthly_downloads: 72712
-latest_version: 0.14.2
-updated_at: '2025-08-06T19:54:57'
+monthly_downloads: 73817
+latest_version: 0.15.0
+updated_at: '2026-04-18T23:15:31'
 created_at: '2023-10-02T01:42:04'
-python_compatibility_raw: '>=3.9'
+python_compatibility_raw: '>=3.10'
 python_compatibility:
-  raw: '>=3.9'
-  specifier_set: '>=3.9'
+  raw: '>=3.10'
+  specifier_set: '>=3.10'
   compatible:
-  - '3.9'
   - '3.10'
   - '3.11'
   - '3.12'
